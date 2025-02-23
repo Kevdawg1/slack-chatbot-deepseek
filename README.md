@@ -18,11 +18,7 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![Unlicense License][license-shield]][license-url]
+
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
 
@@ -266,7 +262,6 @@ TODO
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/kevin-kam-eng
-[product-screenshot]: images/screenshot.png
 [Python]: https://img.shields.io/pypi/pyversions/slack_bolt?style=for-the-badge&logo=python
 [Python-url]: https://www.python.org/downloads/
 [Conda]: https://img.shields.io/conda/d/conda-forge/python?style=for-the-badge&logo=anaconda
