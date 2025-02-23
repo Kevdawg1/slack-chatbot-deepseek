@@ -1,0 +1,13 @@
+prefix=/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv
+exec_prefix=/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv
+libdir=/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv/lib
+sharedlibdir=/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv/lib
+includedir=/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

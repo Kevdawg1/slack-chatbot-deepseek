@@ -1,0 +1,5 @@
+#!/Users/kevinkam/Documents/e2e_projects/slack-chatbot/venv/bin/python3.11
+
+import pydoc
+if __name__ == '__main__':
+    pydoc.cli()
