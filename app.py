@@ -5,11 +5,16 @@ import json
 import requests
 from slack_bolt import App
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 # Slack API credentials
-SLACK_BOT_TOKEN = "xoxp-8497227385956-8495179320882-8494692807107-fa303b7ce900bbefa5339114d040990a"  # Replace with your bot token
-SLACK_SIGNING_SECRET = "fa764f343a37d410d578698f39b76e30"
-DEEPSEEK_API_URL = "http://localhost:11434/v1/chat"  # Deepseek API
-BOT_USER_ID = "U08EK599ERY"  # Replace with your bot's Slack User ID
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")  # Replace with your bot token
+SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET") # Your Slack app's signing secret
+DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL")  # Deepseek R1 endpoint
+BOT_USER_ID = os.getenv("BOT_USER_ID")
 
 # Initialize Slack Bolt App
 app = App(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
