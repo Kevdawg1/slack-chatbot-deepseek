@@ -29,7 +29,7 @@
   <a href="https://github.com/othneildrew/Best-README-Template">
     <img src="https://cdn.freebiesupply.com/logos/large/2x/slack-logo-icon.png" alt="Logo" width="80" height="80">
     <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/deepseek-logo-icon.png" alt="Logo" width="80" height="80">
-    <img src="https://images.seeklogo.com/logo-png/59/2/ollama-logo-png_seeklogo-593420.png" alt="Logo" width="80" height="80">
+    <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/ollama.png" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Slack Chatbot Powered by Deepseek R1 with Ollama API</h3>
