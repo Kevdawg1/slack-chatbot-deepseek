@@ -26,7 +26,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
+  <a href="https://github.com/Kevdawg1/slack-chatbot-deepseek">
     <img src="https://cdn.freebiesupply.com/logos/large/2x/slack-logo-icon.png" alt="Logo" width="80" height="80">
     <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/deepseek-logo-icon.png" alt="Logo" width="80" height="80">
     <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/ollama.png" alt="Logo" width="80" height="80">
