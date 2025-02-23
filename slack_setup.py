@@ -1,7 +1,14 @@
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-client = WebClient(token="xoxp-8497227385956-8495179320882-8494692807107-fa303b7ce900bbefa5339114d040990a")
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")  # Replace with your bot token
+
+client = WebClient(token=SLACK_BOT_TOKEN)
 
 try:
     client.chat_postMessage(

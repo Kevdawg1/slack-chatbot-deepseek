@@ -1,7 +1,12 @@
 import requests
 
-SLACK_BOT_TOKEN = "xoxp-8497227385956-8495179320882-8494692807107-fa303b7ce900bbefa5339114d040990a"  # Your Slack OAuth token
-CHANNEL_ID = "C08EK5D3GSW"  # Slack channel ID
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")  # Replace with your bot token
+CHANNEL_ID = os.getenv("CHANNEL_ID")  # Slack channel ID
 
 def fetch_channel_history(channel_id):
     url = f"https://slack.com/api/conversations.history?channel={channel_id}"
