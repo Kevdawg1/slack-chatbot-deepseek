@@ -217,6 +217,8 @@ This is an optional step if you want to use the Modal Mode of the app.
 
 ### Python Application
 
+To start the chatbot, simply use the command below. If any changes are made, you will need to stop the program from running and restart it to see the changes applied. 
+
 ```sh
   python app.py
 ```
@@ -236,8 +238,6 @@ Use `slack_setup.py` to create sample messages that will provide context for the
 ```sh
   python slack_setup.py
 ```
-
-### Fetching 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
