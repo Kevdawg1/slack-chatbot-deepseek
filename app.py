@@ -1,103 +1,165 @@
-import os
-import time
-import re
-import json
-import requests
 from slack_bolt import App
-
+import requests
+import json
+import re
+import time
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-# Slack API credentials
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")  # Replace with your bot token
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET") # Your Slack app's signing secret
 DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL")  # Deepseek R1 endpoint
 BOT_USER_ID = os.getenv("BOT_USER_ID")
 
-# Initialize Slack Bolt App
 app = App(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
 
-# Track last response time (cooldown mechanism)
-last_response_time = 0
+last_response_time = 0  # Track last response timestamp
 
 def should_process_message():
     """Check if 10 minutes (600 seconds) have passed since the last response."""
     global last_response_time
     current_time = time.time()
     if (current_time - last_response_time) >= 600:
-        last_response_time = current_time  # Update last response time
         return True
     return False
 
-def clean_ollama_response(response_text):
-    """Extract and remove the <think> content from the AI response."""
-    think_match = re.search(r"<think>(.*?)</think>", response_text, re.DOTALL)
-    think_content = think_match.group(1).strip() if think_match else ""
-    cleaned_response = re.sub(r"<think>.*?</think>\n?", "", response_text, flags=re.DOTALL).strip()
-    return cleaned_response, think_content
+def generate_response(full_context):
+    # Call Deepseek API with the updated context
+    request_body = {
+        "model": "deepseek-r1:1.5B",
+        "messages": [
+            {"role": "system", "content": "You are an assistant that provides useful response suggestions on the latest main topic based on the context provided. Keep your response limited to 50 words."},
+            {"role": "user", "content": full_context}
+        ],
+        "stream": False
+    }
 
-def get_deepseek_response(user_message, extra_context=""):
-    """Send a message to Deepseek API and get a response."""
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(DEEPSEEK_API_URL, json=request_body, headers=headers)
+
     try:
-        full_prompt = user_message
-        if extra_context:
-            full_prompt += f"\n\nAdditional context: {extra_context}"
+        response_json = response.json()
+        suggested_reply = response_json["message"]["content"]
 
-        payload = {
-            "model": "deepseek-llm",
-            "messages": [{"role": "user", "content": full_prompt}]
-        }
-        response = requests.post(DEEPSEEK_API_URL, json=payload)
+        # Extract and clean the <think> part
+        think_match = re.search(r"<think>(.*?)</think>", suggested_reply, re.DOTALL)
+        llm_thought_process = think_match.group(1).strip() if think_match else ""
+        cleaned_suggested_reply = re.sub(r"<think>.*?</think>\n?", "", suggested_reply, flags=re.DOTALL).strip()
 
-        if response.status_code == 200:
-            response_json = response.json()
-            suggested_reply = response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
-            cleaned_reply, think_content = clean_ollama_response(suggested_reply)
-            return cleaned_reply, think_content
-        else:
-            print(f"Deepseek API Error: {response.status_code} - {response.text}")
-            return "Sorry, I encountered an issue processing your request.", ""
-    except Exception as e:
-        print(f"Error communicating with Deepseek: {e}")
-        return "Sorry, I encountered an issue processing your request.", ""
+        return cleaned_suggested_reply, llm_thought_process
+    except json.JSONDecodeError:
+        print("Failed to decode JSON response.")
+        print(response.text)
 
-# 🔹 Automatically Open Modal When a Message is Sent
+# Function to fetch channel history
+def fetch_channel_history(channel_id):
+    url = f"https://slack.com/api/conversations.history?channel={channel_id}"
+    headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+    response = requests.get(url, headers=headers)
+    return response.json().get("messages", [])
+
+# Event listener for new messages in Slack
 @app.event("message")
-def handle_message_events(body, client):
-    """Automatically opens a modal when a message is received."""
+def handle_message(event, say):
     global last_response_time
-    event = body.get("event", {})
-    user_id = event.get("user", "")
-    text = event.get("text", "")
-    channel_id = event.get("channel", "")
-
-    # Ignore bot messages and prevent infinite loops
-    if user_id == BOT_USER_ID:
-        return
-
-    # Ignore messages if within cooldown period
     if not should_process_message():
         print("Cooldown active. Ignoring message.")
-        return
+        return # Skip processing if cooldown is active
+    print(event)
+    if event.get("user") == BOT_USER_ID:
+        return  # Skip bot messages
+    if event.get("subtype") == "message_deleted":
+        return # Skip deleted messages
+    
+    channel_id = event["channel"]
+    
+    # Fetch the full conversation history
+    messages = fetch_channel_history(channel_id)
+    context = "\n".join([msg["text"] for msg in messages])  # Combine previous messages into context
+    
+    user_message = event["text"]
+    full_context = context + "\nUser: " + user_message  # Append user's new message to context
+    # Call Deepseek R1 API for a suggested response
+    
+    try:
+        suggested_reply, llm_thought_process = generate_response(full_context)
 
-    trigger_id = body["event"]["ts"]  # Use timestamp as a trigger ID
-    message_ts = event["ts"]
+        print(f"Model Thought Process: {llm_thought_process}")
+        current_time = time.time()
+        last_response_time = current_time
+        say(f"{suggested_reply}", thread_ts=event["ts"])
+    except json.JSONDecodeError:
+        print("Failed to decode JSON response.")
+    
 
-    # Open a modal for users to add additional context
-    client.views_open(
+# Event listener for additional context (e.g., button press or input field)
+@app.shortcut("add_context")
+def handle_additional_context(ack, body, say):
+    ack()  # Acknowledge the interaction
+    
+    user_context = body["message"]["text"]  # Get new context added by user
+    message_thread_ts = body["message"]["ts"]
+    
+    # Fetch previous conversation context
+    messages = fetch_channel_history(body["channel"]["id"])
+    context = "\n".join([msg["text"] for msg in messages])  # Combine previous messages
+    
+    # Generate new message suggestion with additional context
+    full_context = context + "\nUser: " + user_context
+    
+    # Call Deepseek R1 API with the updated context
+    response = requests.post(DEEPSEEK_API_URL, json={
+        "model": "deepseek-r1",
+        "messages": [{"role": "user", "content": full_context}]
+    }).json()
+
+    suggested_reply = response["choices"][0]["message"]["content"]
+    
+    # Send the new suggested response
+    say(f"💡 Updated suggestion: {suggested_reply}", thread_ts=message_thread_ts)
+
+# 🔹 **Shortcut to Open Context Modal**
+@app.shortcut("add_context")
+def open_context_modal(ack, body, client):
+    """Opens a modal where users can add more context."""
+    ack()
+
+    trigger_id = body["trigger_id"]
+    message_ts = body["message"]["ts"]
+    channel_id = body["channel"]["id"]
+
+    # Open a Slack modal for users to add additional context
+    view_response = client.views_open(
         trigger_id=trigger_id,
         view={
             "type": "modal",
             "callback_id": "context_submission",
-            "private_metadata": json.dumps({"channel_id": channel_id, "message_ts": message_ts, "original_text": text}),
+            "private_metadata": json.dumps({"channel_id": channel_id, "message_ts": message_ts}),
             "title": {"type": "plain_text", "text": "Add More Context"},
             "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": f"*Original Message:*\n>{text}"}
-                },
+                {"type": "section", "text": {"type": "mrkdwn", "text": "*Fetching past messages...*"}}
+            ],
+            "submit": {"type": "plain_text", "text": "Regenerate Response"}
+        }
+    )
+    
+    view_id = view_response["view"]["id"]
+    
+    messages = fetch_channel_history(channel_id)
+    previous_context = "\n".join([msg["text"] for msg in messages])
+    
+    suggested_reply, _ = generate_response(previous_context)
+    
+    client.views_update(
+        view_id=view_id,
+        view={
+            "type": "modal",
+            "callback_id": "context_submission",
+            "title": {"type": "plain_text", "text": "Add More Context"},
+            "blocks": [
+                {"type": "section", "text": {"type": "mrkdwn", "text": f"*AI Suggested Response:*\n{suggested_reply}"}},
                 {
                     "type": "input",
                     "block_id": "context_input",
@@ -113,8 +175,9 @@ def handle_message_events(body, client):
             "submit": {"type": "plain_text", "text": "Regenerate Response"}
         }
     )
+    print("Context modal opened.")
 
-# 🔹 Handle Modal Submission
+# 🔹 **Handle Modal Submission**
 @app.view("context_submission")
 def handle_context_submission(ack, body, client):
     """Processes the additional context and regenerates the response."""
@@ -129,16 +192,29 @@ def handle_context_submission(ack, body, client):
     metadata = json.loads(body["view"]["private_metadata"])
     channel_id = metadata["channel_id"]
     message_ts = metadata["message_ts"]
-    original_text = metadata["original_text"]
 
-    # Call Deepseek API with the updated context
-    response, _ = get_deepseek_response(original_text, extra_context)
+    # Fetch previous conversation context
+    messages = fetch_channel_history(channel_id)
+    previous_context = "\n".join([msg["text"] for msg in messages])
 
-    # Send updated response back in Slack thread
-    client.chat_postMessage(
-        channel=channel_id,
-        text=f"💡 Updated suggestion: {response}",
-        thread_ts=message_ts
-    )
+    # Append additional user context
+    full_context = previous_context + f"\nMy Perspective: {extra_context}"
+
+    try:
+        # Generate a new response based on the updated context
+        suggested_reply, llm_thought_process = generate_response(full_context)
+        # Send updated response back in Slack thread
+        client.chat_postMessage(
+            channel=channel_id,
+            text=suggested_reply,
+            thread_ts=message_ts,
+            user=user_id
+        )
+
+        print(f"💡 Model Thought Process: {llm_thought_process}")
+
+    except Exception as e:
+        print(f"Error processing additional context: {e}")
+
 
 app.start(port=3000)

@@ -229,6 +229,16 @@ Set up your ngrok endpoint. This will expose a public endpoint (e.g. https://65f
   ngrok 3000
 ```
 
+### Setup sample messages in a channel
+
+Use `slack_setup.py` to create sample messages that will provide context for the chatbot to use when generating a response. You will need to ensure that you have updated the environment variables relevant to your Slack workspace. 
+
+```sh
+  python slack_setup.py
+```
+
+### Fetching 
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
